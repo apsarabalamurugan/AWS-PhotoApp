@@ -1,0 +1,2 @@
+[client]
+webservice=http://photoapp-nu-web-service-ibm-env.eba-uidvkewj.us-east-2.elasticbeanstalk.com
