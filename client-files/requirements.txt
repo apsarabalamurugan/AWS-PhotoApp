@@ -1,0 +1,4 @@
+matplotlib
+requests
+jsons
+Pillow

@@ -7,6 +7,9 @@
 #
 # Authors:
 #   Isaac Miller
+#   Eli Barlow
+#   Apsi Balamurgan
+#   Spencer Rothfleisch
 #   Prof. Joe Hummel (initial template)
 #   Northwestern University
 #   Spring 2023
@@ -14,6 +17,7 @@
 
 import requests  # calling web service
 import jsons  # relational-object mapping
+from PIL import Image
 
 import uuid
 import pathlib
@@ -85,6 +89,7 @@ def prompt():
   print("   4 => download")
   print("   5 => download and display")
   print("   6 => bucket contents")
+  print("   7 => upload image") 
 
   cmd = int(input())
   return cmd
@@ -422,8 +427,69 @@ def bucket(baseurl, startafter=""):
     logging.error("url: " + url)
     logging.error(e)
     return
-  
+#########################################################################
+#
+# upload image
+#
+# helper function to extract jpeg metadata
+def get_jpeg_metadata(file_path):
+    with Image.open(file_path) as img:
+        metadata = img.info
+    
+    # date_taken = metadata.get('DateTimeOriginal')
+    # print(date_taken)
+    print(metadata.keys())
+    print(metadata['exif'])
+    return jsons.dumps(metadata)
 
+def upload_image(baseurl:str):
+  try:
+    print("Enter asset name>")
+    assetname = input()
+    print("Enter user id>")
+    userid = input()
+
+    api = '/image/' + userid
+    url = baseurl + api
+
+    with open(assetname, 'rb') as f:
+      image_data = f.read()
+    
+    image_data = base64.b64encode(image_data).decode('utf-8')
+    image_metadata = get_jpeg_metadata(assetname)
+
+    # print(image_metadata)
+
+    data = {
+      "assetname": assetname,
+      "data": image_data,
+      "metadata": image_metadata
+    }
+    return
+
+    res = requests.post(url, json=data)
+
+    if res.status_code != 200:
+      print("Failed with status code:", res.status_code)
+      print("url: " + url)
+      if res.status_code == 400:
+        body = res.json()
+        print("Error message:", body["message"])
+      return
+    elif res.status_code == 200:
+      if res.json()['message'] == 'no such user...':
+        print("No such user...")
+        return
+      else:
+       print("Image uploaded successfully!")
+       print("uploaded to RDS with assetid:", res.json()['assetid'])
+
+  except Exception as e:
+    logging.error("upload_image() failed:")
+    logging.error("url: " + url)
+    logging.error("assetname: " + assetname)
+    logging.error(e)
+    return
 #########################################################################
 # main
 #
@@ -480,6 +546,8 @@ while cmd != 0:
     download(baseurl, True)
   elif cmd == 6:
     bucket(baseurl)
+  elif cmd == 7:
+    upload_image(baseurl)
   else:
     print("** Unknown command, try again...")
   #
