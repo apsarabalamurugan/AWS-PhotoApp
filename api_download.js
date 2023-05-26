@@ -13,8 +13,30 @@ exports.get_download = async (req, res) => {
   console.log("call to /download...");
 
   const assetId = req.params.assetid;
+  const startDate = req.query.start_date;
+  const endDate = req.query.end_date;
+  const location = req.query.location;
+  const locationRange = req.query.location_range;
 
-  dbConnection.query('SELECT * FROM assets WHERE assetid = ?', [assetId], async (err, rows, fields) => {
+  let query = `SELECT assets.*, metadata.id as metadata_id, metadata.date_taken, ST_AsText(metadata.location) as location, metadata.created_at as metadata_created_at, metadata.updated_at as metadata_updated_at FROM assets LEFT JOIN metadata ON assets.assetid = metadata.assetid WHERE assets.assetid = ?`;
+  let params = [assetId];
+
+  if(startDate){
+    query += ' AND metadata.date_taken >= ?';
+    params.push(startDate);
+  }
+
+  if(endDate){
+    query += ' AND metadata.date_taken <= ?';
+    params.push(endDate);
+  }
+
+  if(location){
+    query += ` AND ST_Distance_Sphere(metadata.location, ST_PointFromText(?)) <= ?`;
+    params.push(location, locationRange || 10000);
+  }
+
+  dbConnection.query(query, params, async (err, rows, fields) => {
     if (err) {
       return res.status(400).json({
         "message": err.message,
