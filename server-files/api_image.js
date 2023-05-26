@@ -52,24 +52,48 @@ exports.post_image = async (req, res) => {
 
         try {
           const data = await s3.send(new PutObjectCommand(putObjectParams));
+          // update databases
+          const dateTaken = '2023-05-26'; // Example value for date_taken
+          const location = 'Some location'; // Example value for location
+          const createdAt = '2023-05-26'; // Example value for created_at
+          const updatedAt = '2023-05-26'; // Example value for updated_at
 
-          // Update the database
-          dbConnection.query('INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)', [req.params.userid, req.body.assetname, folder + "/" + name], (err, rows, fields) => {
-            if (err) {
-              res.status(400).json({
-                "message": err.message,
-                "assetid": -1
-              });
-              return
-            }//if
-            else {
-              res.status(200).json({
-                "message": "success",
-                "assetid": rows.insertId 
-              });
-              return
-            }//else
-          });//query
+          dbConnection.query(
+            'INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)',
+            [req.params.userid, req.body.assetname, folder + "/" + name],
+            (err, rows, fields) => {
+              if (err) {
+                res.status(400).json({
+                  "message": err.message,
+                  "assetid": -1
+                });
+                return
+              } else {
+                // If the insertion into assets is successful, insert into metadata
+                const newlyGeneratedAssetId = rows.insertId;
+
+                dbConnection.query(
+                  'INSERT INTO metadata (assetid, date_taken, location, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+                  [newlyGeneratedAssetId, dateTaken, location, createdAt, updatedAt],
+                  (err, rows, fields) => {
+                    if (err) {
+                      res.status(400).json({
+                        "message": err.message,
+                        "assetid": -1
+                      });
+                      return
+                    } else {
+                      res.status(200).json({
+                        "message": "success",
+                        "assetid": rows.insertId 
+                      });
+                      return
+                    }
+                  }
+                );
+              }
+            }
+          );
         }
         catch (err) {
           res.status(400).json({

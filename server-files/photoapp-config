@@ -16,7 +16,5 @@ aws_secret_access_key = UtzAEJpXa0UZ4osQV8xs2lZTaKWmmVjo6OWkQkO/
 
 [s3readwrite]
 region_name = us-east-2
-; aws_access_key_id = AKIAQ5NLUXTXMQYALAU4
-; aws_secret_access_key = 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
 aws_access_key_id = AKIAQ5NLUXTXNCY6QQHR
 aws_secret_access_key = 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
