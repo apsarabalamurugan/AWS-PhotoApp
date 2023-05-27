@@ -18,7 +18,7 @@
 import requests  # calling web service
 import jsons  # relational-object mapping
 from PIL import Image
-
+from PIL.ExifTags import TAGS
 import uuid
 import pathlib
 import logging
@@ -432,15 +432,23 @@ def bucket(baseurl, startafter=""):
 # upload image
 #
 # helper function to extract jpeg metadata
-def get_jpeg_metadata(file_path):
+def get_jpeg_exif(file_path):
     with Image.open(file_path) as img:
-        metadata = img.info
+        exif = img._getexif()
+
+    relevant_metadata = {}
+    relevant_exif_tags = ["DateTimeOriginal"]
+    if exif is None:
+      print("No exif metadata found")
+      return
     
-    # date_taken = metadata.get('DateTimeOriginal')
-    # print(date_taken)
-    print(metadata.keys())
-    print(metadata['exif'])
-    return jsons.dumps(metadata)
+    for tag_id, value in exif.items():
+      tag = TAGS.get(tag_id, tag_id)
+      if tag == "DateTimeOriginal":
+        relevant_metadata[tag] = value
+
+    return relevant_metadata  
+
 
 def upload_image(baseurl:str):
   try:
@@ -456,7 +464,7 @@ def upload_image(baseurl:str):
       image_data = f.read()
     
     image_data = base64.b64encode(image_data).decode('utf-8')
-    image_metadata = get_jpeg_metadata(assetname)
+    image_metadata = get_jpeg_exif(assetname)
 
     # print(image_metadata)
 
