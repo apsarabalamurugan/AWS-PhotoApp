@@ -8,7 +8,7 @@
 # Authors:
 #   Isaac Miller
 #   Eli Barlow
-#   Apsi Balamurgan
+#   Apsara Balamurugan
 #   Spencer Rothfleisch
 #   Prof. Joe Hummel (initial template)
 #   Northwestern University
@@ -433,21 +433,35 @@ def bucket(baseurl, startafter=""):
 #
 # helper function to extract jpeg metadata
 def get_jpeg_exif(file_path):
-    with Image.open(file_path) as img:
-        exif = img._getexif()
+  with Image.open(file_path) as img:
+      exif = img._getexif()
 
-    relevant_metadata = {}
-    relevant_exif_tags = ["DateTimeOriginal"]
-    if exif is None:
-      print("No exif metadata found")
-      return
-    
-    for tag_id, value in exif.items():
-      tag = TAGS.get(tag_id, tag_id)
-      if tag == "DateTimeOriginal":
-        relevant_metadata[tag] = value
+  relevant_metadata = {}
+  relevant_exif_tags = ["DateTime","GPSInfo","ExifImageWidth","ExifImageHeight"]
+  if exif is None:
+    print("No exif metadata found")
+    return
 
-    return relevant_metadata  
+  for tag_id, value in exif.items():
+
+    tag = TAGS.get(tag_id, tag_id)
+    print(tag)
+    print(value)
+    if tag not in relevant_exif_tags:
+      continue
+
+    if tag == "GPSInfo":
+      relevant_metadata[tag] = {}
+      for key, val in value.items():
+        if key in [1,3]:
+          relevant_metadata[tag][key] = val
+        elif key in [2,4]:
+          relevant_metadata[tag][key] = tuple(str(x) for x in val)
+          # apsi is always right. do not forget this.
+    else:
+      relevant_metadata[tag] = value
+
+  return jsons.dump(relevant_metadata)
 
 
 def upload_image(baseurl:str):
@@ -466,14 +480,12 @@ def upload_image(baseurl:str):
     image_data = base64.b64encode(image_data).decode('utf-8')
     image_metadata = get_jpeg_exif(assetname)
 
-    # print(image_metadata)
 
     data = {
       "assetname": assetname,
       "data": image_data,
       "metadata": image_metadata
     }
-    return
 
     res = requests.post(url, json=data)
 
