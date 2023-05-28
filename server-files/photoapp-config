@@ -11,10 +11,10 @@ db_name = photoapp
 
 [s3readonly]
 region_name = us-east-2
-aws_access_key_id = AKIAQ5NLUXTXMQYALAU4
-aws_secret_access_key = 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
+aws_access_key_id = AKIAQ5NLUXTXHUJXJ5UV
+aws_secret_access_key = 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
 
 [s3readwrite]
 region_name = us-east-2
-aws_access_key_id = AKIAQ5NLUXTXNCY6QQHR
-aws_secret_access_key = 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
+aws_access_key_id = AKIAQ5NLUXTXODRUBGDZ
+aws_secret_access_key = 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
