@@ -67,52 +67,42 @@ exports.post_image = async (req, res) => {
             Metadata: newMetadata,
           };
 
-          try {
-            const data = await s3.send(new PutObjectCommand(putObjectParams));
-            // update databases
-            // ! TODO: fix this
-            const dateTaken = "2023-05-26"; // Example value for date_taken
-            const location = "Some location"; // Example value for location
-            const createdAt = "2023-05-26"; // Example value for created_at
-            const updatedAt = "2023-05-26"; // Example value for updated_at
+        try {
+          const data = await s3.send(new PutObjectCommand(putObjectParams));
+          // update databases
+          const dateTaken = req.body.metadata[dateTaken]
+          const location = req.body.metadata[location]
+    
+          dbConnection.query(
+            'INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)',
+            [req.params.userid, req.body.assetname, folder + "/" + name],
+            (err, rows, fields) => {
+              if (err) {
+                res.status(400).json({
+                  "message": err.message,
+                  "assetid": -1
+                });
+                return
+              } else {
+                // If the insertion into assets is successful, insert into metadata
+                const newlyGeneratedAssetId = rows.insertId;
 
-            dbConnection.query(
-              "INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)",
-              [req.params.userid, req.body.assetname, folder + "/" + name],
-              (err, rows, fields) => {
-                if (err) {
-                  res.status(400).json({
-                    message: err.message,
-                    assetid: -1,
-                  });
-                  return;
-                } else {
-                  // If the insertion into assets is successful, insert into metadata
-                  const newlyGeneratedAssetId = rows.insertId;
-
-                  dbConnection.query(
-                    "INSERT INTO metadata (assetid, date_taken, location, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                    [
-                      newlyGeneratedAssetId,
-                      dateTaken,
-                      location,
-                      createdAt,
-                      updatedAt,
-                    ],
-                    (err, rows, fields) => {
-                      if (err) {
-                        res.status(400).json({
-                          message: err.message,
-                          assetid: -1,
-                        });
-                        return;
-                      } else {
-                        res.status(200).json({
-                          message: "success",
-                          assetid: rows.insertId,
-                        });
-                        return;
-                      }
+                dbConnection.query(
+                  'INSERT INTO metadata (assetid, date_taken, location, created_at, updated_at) VALUES (?, ?, ?)',
+                  [newlyGeneratedAssetId, dateTaken, location],
+                  (err, rows, fields) => {
+                    if (err) {
+                      res.status(400).json({
+                        "message": err.message,
+                        "assetid": -1
+                      });
+                      return
+                    } else {
+                      res.status(200).json({
+                        "message": "success",
+                        "assetid": rows.insertId 
+                      });
+                      return
                     }
                   );
                 }
