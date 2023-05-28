@@ -104,6 +104,7 @@ exports.post_image = async (req, res) => {
                       });
                       return
                     }
+                  }
                   );
                 }
               }
