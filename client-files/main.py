@@ -445,8 +445,8 @@ def get_jpeg_exif(file_path):
   for tag_id, value in exif.items():
 
     tag = TAGS.get(tag_id, tag_id)
-    print(tag)
-    print(value)
+    #print(tag)
+    #print(value)
     if tag not in relevant_exif_tags:
       continue
 
@@ -486,6 +486,8 @@ def upload_image(baseurl:str):
       "data": image_data,
       "metadata": image_metadata
     }
+
+    #print(data["metadata"])
 
     res = requests.post(url, json=data)
 

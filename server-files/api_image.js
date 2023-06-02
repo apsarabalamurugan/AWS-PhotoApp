@@ -68,10 +68,11 @@ exports.post_image = async (req, res) => {
           };
 
         try {
+          // this is where its erroring !!!!!
           const data = await s3.send(new PutObjectCommand(putObjectParams));
           // update databases
-          const dateTaken = req.body.metadata[dateTaken]
-          const location = req.body.metadata[location]
+          const location = req.body.metadata["GPSInfo"] || "No GPS Info";
+          const dateTaken = req.body.metadata["DateTime"] || "No Date Taken";
     
           dbConnection.query(
             'INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)',
