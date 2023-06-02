@@ -8,6 +8,9 @@ const dbConnection = require('./database.js')
 const { GetObjectCommand } = require('@aws-sdk/client-s3');
 const { s3, s3_bucket_name, s3_region_name } = require('./aws.js');
 
+const uuid = require("uuid");
+const sharp = require("sharp");
+
 exports.get_download = async (req, res) => {
 
   console.log("call to /download...");
@@ -68,8 +71,15 @@ exports.get_download = async (req, res) => {
       };
       const s3Object = await s3.send(new GetObjectCommand(getObjectParams));
 
-      // Convert the downloaded object to a base64-encoded string
-      const data = await s3Object.Body.transformToString("base64");
+      // Convert the downloaded object to a buffer
+      const compressedData = Buffer.from(s3Object.Body);
+
+      // Decompress the image using sharp
+      const decompressedImage = await sharp(compressedData)
+        .toBuffer();
+
+      // Convert the decompressed image to a base64-encoded string
+      const data = decompressedImage.toString("base64");
 
       res.status(200).json({
         message: "Success",
