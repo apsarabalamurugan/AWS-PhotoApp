@@ -87,7 +87,7 @@ exports.post_image = async (req, res) => {
             .toBuffer();
 
           //! possibly need to modify the location and datetaken metadata here so that it fits the database
-          const newMetadata = { location: pointLocation, dateTaken: dateTime, CompressionQuality: quality };
+          const newMetadata = { location: pointLocation, dateTaken: DateTime, CompressionQuality: String(quality) };
 
           console.log(newMetadata);
 
@@ -102,9 +102,10 @@ exports.post_image = async (req, res) => {
             // this is where its erroring !!!!!
             const data = await s3.send(new PutObjectCommand(putObjectParams));
             // update databases
-            //! I think here we need to modify the location and dateTaken strings
-            const location = pointLocation || "No GPS Info";
-            const dateTaken = dateTime || "No Date Taken";
+            //! WE NEED TO CHECK FOR WHEN IT'S INVALID HERE
+            var location = pointLocation;
+            // location = `ST_PointFromText('${location}')`
+            const dateTaken = dateTime;
 
             dbConnection.query(
               "INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)",
@@ -121,7 +122,7 @@ exports.post_image = async (req, res) => {
                   const newlyGeneratedAssetId = rows.insertId;
 
                   dbConnection.query(
-                    "INSERT INTO metadata (assetid, date_taken, location) VALUES (?, ?, ?)",
+                    "INSERT INTO metadata (assetid, date_taken, location) VALUES (?, ?, ST_GeomFromText(?))",
                     [newlyGeneratedAssetId, dateTaken, location],
                     (err, rows, fields) => {
                       if (err) {
