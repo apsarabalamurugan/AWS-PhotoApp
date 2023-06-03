@@ -50,67 +50,72 @@ exports.post_image = async (req, res) => {
         else {
           const user = rows[0];
           const folder = user.bucketfolder;
-
+          // let's set the default quality to 80 and default scaled down image width to 800, but these can be modified
+          const imageSize = 800;
           const quality = 80;
           const resizedImage = await sharp(bytes)
-            .resize(800)
+            .resize(imageSize)
             .jpeg({ quality: quality })
             .toBuffer();
 
+          //! possibly need to modify the location and datetaken metadata here so that it fits the database
           const newMetadata = { ...metadata, CompressionQuality: quality };
-          // i care a lot about your mom :)
+
+          console.log(newMetadata);
 
           const putObjectParams = {
             Bucket: s3_bucket_name,
             Key: folder + "/" + name,
             Body: resizedImage,
-            Metadata: newMetadata,
+            // Metadata: newMetadata, this was causing the crash, as it contains arrays which we can't have -Eli
           };
 
-        try {
-          // this is where its erroring !!!!!
-          const data = await s3.send(new PutObjectCommand(putObjectParams));
-          // update databases
-          const location = req.body.metadata["GPSInfo"] || "No GPS Info";
-          const dateTaken = req.body.metadata["DateTime"] || "No Date Taken";
-    
-          dbConnection.query(
-            'INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)',
-            [req.params.userid, req.body.assetname, folder + "/" + name],
-            (err, rows, fields) => {
-              if (err) {
-                res.status(400).json({
-                  "message": err.message,
-                  "assetid": -1
-                });
-                return
-              } else {
-                // If the insertion into assets is successful, insert into metadata
-                const newlyGeneratedAssetId = rows.insertId;
+          try {
+            // this is where its erroring !!!!!
+            const data = await s3.send(new PutObjectCommand(putObjectParams));
+            // update databases
+            //! I think here we need to modify the location and dateTaken strings
+            const location = req.body.metadata["GPSInfo"] || "No GPS Info";
+            const dateTaken = req.body.metadata["DateTime"] || "No Date Taken";
 
-                dbConnection.query(
-                  'INSERT INTO metadata (assetid, date_taken, location, created_at, updated_at) VALUES (?, ?, ?)',
-                  [newlyGeneratedAssetId, dateTaken, location],
-                  (err, rows, fields) => {
-                    if (err) {
-                      res.status(400).json({
-                        "message": err.message,
-                        "assetid": -1
-                      });
-                      return
-                    } else {
-                      res.status(200).json({
-                        "message": "success",
-                        "assetid": rows.insertId 
-                      });
-                      return
+            dbConnection.query(
+              "INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)",
+              [req.params.userid, req.body.assetname, folder + "/" + name],
+              (err, rows, fields) => {
+                if (err) {
+                  res.status(400).json({
+                    message: err.message,
+                    assetid: -1,
+                  });
+                  return;
+                } else {
+                  // If the insertion into assets is successful, insert into metadata
+                  const newlyGeneratedAssetId = rows.insertId;
+
+                  dbConnection.query(
+                    "INSERT INTO metadata (assetid, date_taken, location) VALUES (?, ?, ?)",
+                    [newlyGeneratedAssetId, dateTaken, location],
+                    (err, rows, fields) => {
+                      if (err) {
+                        res.status(400).json({
+                          message: err.message,
+                          assetid: -1,
+                        });
+                        return;
+                      } else {
+                        res.status(200).json({
+                          message: "success",
+                          assetid: rows.insertId,
+                        });
+                        return;
+                      }
                     }
-                  }
                   );
                 }
               }
             );
           } catch (err) {
+            console.log(err);
             res.status(400).json({
               message: err.message,
               assetid: -1,
@@ -120,6 +125,7 @@ exports.post_image = async (req, res) => {
       }
     ); //query
   } catch (err) {
+    console.log(err);
     //try
     res.status(400).json({
       message: err.message,
