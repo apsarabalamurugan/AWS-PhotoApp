@@ -10,6 +10,7 @@ const { s3, s3_bucket_name, s3_region_name } = require("./aws.js");
 
 const uuid = require("uuid");
 const sharp = require("sharp");
+const { exit } = require("process");
 
 function convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates) {
   const latitude = latitudeCoordinates.map(parseFloat).reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
@@ -41,7 +42,8 @@ exports.post_image = async (req, res) => {
     */
     
     // get location
-    const {GPSInfo, DateTime} = req.body.metadata;
+    const {GPSInfo, DateTime, ImageWidth, ImageHeight} = req.body.metadata;
+    console.log(req.body.metadata);
     const { 1: latitudeDirection, 2: latitudeCoordinates, 3: longitudeDirection, 4: longitudeCoordinates } = GPSInfo;
     const pointLocation = convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates);
     
@@ -51,6 +53,9 @@ exports.post_image = async (req, res) => {
     const [hour, minute, second] = timePart.split(':');
     const dateTime= new Date(year, month - 1, day, hour, minute, second);
 
+    // get image width and height
+    const width = ImageWidth;
+    const height = ImageHeight;
 
     var bytes = Buffer.from(S, "base64");
     const name = uuid.v4() + ".jpg";
@@ -87,7 +92,7 @@ exports.post_image = async (req, res) => {
             .toBuffer();
 
           //! possibly need to modify the location and datetaken metadata here so that it fits the database
-          const newMetadata = { location: pointLocation, dateTaken: DateTime, CompressionQuality: String(quality) };
+          const newMetadata = { location: pointLocation, dateTaken: DateTime, CompressionQuality: String(quality) , ImageWidth: String(width), ImageHeight: String(height)};
 
           console.log(newMetadata);
 
