@@ -42,8 +42,8 @@ exports.post_image = async (req, res) => {
     */
     
     // get location
-    const {GPSInfo, DateTime, ImageWidth, ImageHeight} = req.body.metadata;
-    console.log(req.body.metadata);
+    const {GPSInfo, DateTime, ExifImageWidth, ExifImageHeight} = req.body.metadata;
+  
     const { 1: latitudeDirection, 2: latitudeCoordinates, 3: longitudeDirection, 4: longitudeCoordinates } = GPSInfo;
     const pointLocation = convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates);
     
@@ -54,8 +54,8 @@ exports.post_image = async (req, res) => {
     const dateTime= new Date(year, month - 1, day, hour, minute, second);
 
     // get image width and height
-    const width = ImageWidth;
-    const height = ImageHeight;
+    const width = ExifImageWidth;
+    const height = ExifImageHeight;
 
     var bytes = Buffer.from(S, "base64");
     const name = uuid.v4() + ".jpg";
@@ -98,7 +98,7 @@ exports.post_image = async (req, res) => {
 
           const putObjectParams = {
             Bucket: s3_bucket_name,
-            Key: folder + "/" + name,
+            Key: folder + name,
             Body: resizedImage,
             Metadata: newMetadata, // this was causing the crash, as it contains arrays which we can't have -Eli
           };
@@ -111,10 +111,13 @@ exports.post_image = async (req, res) => {
             var location = pointLocation;
             // location = `ST_PointFromText('${location}')`
             const dateTaken = dateTime;
+            console.log(dateTaken);
+            console.log(typeof dateTaken);
+            return
 
             dbConnection.query(
               "INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)",
-              [req.params.userid, req.body.assetname, folder + "/" + name],
+              [req.params.userid, req.body.assetname, folder + name],
               (err, rows, fields) => {
                 if (err) {
                   res.status(400).json({

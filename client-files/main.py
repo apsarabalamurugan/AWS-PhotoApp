@@ -237,8 +237,49 @@ def assets(baseurl):
     # call the web service:
     #
     api = '/assets'
-    url = baseurl + api
+    location_string = ""
+    start_string = ""
+    end_string = ""
+    lat = None
+    start_date = None
+    end_date = None
+    print("Would you like to filter based on metadata? [y/n]")
+    if input() == 'y':
+      # location
+      print("\nWould you like to filter based on location? [y/n]")
+      if input() == 'y':
+        print("\nEnter latitude (decimal format): ")
+        lat = input()
+        print ("\nEnter longitude (decimal format): ")
+        long = input()
+        location_string = f"location=POINT({lat} {long})"
+      
+      # date
+      print("\nWould you like to filter based on date? [y/n]")
+      if input() == 'y':
+        print("\nEnter Start Date (YYYY-MM-DD). If you don't want to include, press '0': ")
+        start_date = input()
+        if start_date == '0': start_date = None
+        print("\nEnter End Date (YYYY-MM-DD) If you don't want to include, press '0': ")
+        end_date = input()
+        if end_date == '0': end_date = None
+        start_string = f"start_date={start_date}"
+        end_string = f"end_date={end_date}"
 
+    url = baseurl + api
+    if lat or start_date or end_date:
+      url += "?"
+      if lat and (start_date or end_date): 
+        url = url + location_string + "&"
+      elif lat:
+        url = url + location_string
+      if start_date and end_date:
+        url = url + start_string + "&"
+      elif start_date:
+        url = url + start_string
+      if end_date:
+        url = url + end_string
+  
     res = requests.get(url)
 
     #
