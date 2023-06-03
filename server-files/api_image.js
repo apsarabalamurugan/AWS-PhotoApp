@@ -11,6 +11,22 @@ const { s3, s3_bucket_name, s3_region_name } = require("./aws.js");
 const uuid = require("uuid");
 const sharp = require("sharp");
 
+function convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates) {
+  const latitude = latitudeCoordinates.map(parseFloat).reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
+  const longitude = longitudeCoordinates.map(parseFloat).reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
+
+  if (isNaN(latitude) || isNaN(longitude)) {
+    throw new Error('Invalid latitude or longitude coordinates');
+  }
+
+  const latitudeSign = latitudeDirection.toUpperCase() === 'N' ? 1 : -1;
+  const longitudeSign = longitudeDirection.toUpperCase() === 'E' ? 1 : -1;
+
+  const point = `POINT(${longitude * longitudeSign} ${latitude * latitudeSign})`;
+
+  return point;
+}
+
 exports.post_image = async (req, res) => {
   console.log("call to /image...");
 
@@ -23,7 +39,19 @@ exports.post_image = async (req, res) => {
     {GPSInfo: {1: 'N', 2: ['41.0', '52.0', '50.45'], 3: 'W', 4: ['87.0', '40.0', '26.63']},
     DateTime: '2021:05:26 16:00:00'}
     */
-    var metadata = req.body.metadata;
+    
+    // get location
+    const {GPSInfo, DateTime} = req.body.metadata;
+    const { 1: latitudeDirection, 2: latitudeCoordinates, 3: longitudeDirection, 4: longitudeCoordinates } = GPSInfo;
+    const pointLocation = convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates);
+    
+    // get date
+    const [datePart, timePart] = DateTime.split(' ');
+    const [year, month, day] = datePart.split(':');
+    const [hour, minute, second] = timePart.split(':');
+    const dateTime= new Date(year, month - 1, day, hour, minute, second);
+
+
     var bytes = Buffer.from(S, "base64");
     const name = uuid.v4() + ".jpg";
 
@@ -59,7 +87,7 @@ exports.post_image = async (req, res) => {
             .toBuffer();
 
           //! possibly need to modify the location and datetaken metadata here so that it fits the database
-          const newMetadata = { ...metadata, CompressionQuality: quality };
+          const newMetadata = { location: pointLocation, dateTaken: dateTime, CompressionQuality: quality };
 
           console.log(newMetadata);
 
@@ -67,7 +95,7 @@ exports.post_image = async (req, res) => {
             Bucket: s3_bucket_name,
             Key: folder + "/" + name,
             Body: resizedImage,
-            // Metadata: newMetadata, this was causing the crash, as it contains arrays which we can't have -Eli
+            Metadata: newMetadata, // this was causing the crash, as it contains arrays which we can't have -Eli
           };
 
           try {
@@ -75,8 +103,8 @@ exports.post_image = async (req, res) => {
             const data = await s3.send(new PutObjectCommand(putObjectParams));
             // update databases
             //! I think here we need to modify the location and dateTaken strings
-            const location = req.body.metadata["GPSInfo"] || "No GPS Info";
-            const dateTaken = req.body.metadata["DateTime"] || "No Date Taken";
+            const location = pointLocation || "No GPS Info";
+            const dateTaken = dateTime || "No Date Taken";
 
             dbConnection.query(
               "INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)",
