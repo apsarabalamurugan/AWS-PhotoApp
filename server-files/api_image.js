@@ -127,8 +127,8 @@ exports.post_image = async (req, res) => {
                   const newlyGeneratedAssetId = rows.insertId;
 
                   dbConnection.query(
-                    "INSERT INTO metadata (assetid, date_taken, location) VALUES (?, ?, ST_GeomFromText(?))",
-                    [newlyGeneratedAssetId, dateTaken, location],
+                    "INSERT INTO metadata (assetid, date_taken, location, compression_quality, original_width, original_height) VALUES (?, ?, ST_GeomFromText(?), ?, ?)",
+                    [newlyGeneratedAssetId, dateTaken, location, quality, width, height],
                     (err, rows, fields) => {
                       if (err) {
                         res.status(400).json({

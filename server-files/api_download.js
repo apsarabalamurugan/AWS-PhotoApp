@@ -20,7 +20,9 @@ exports.get_download = async (req, res) => {
   const location = req.query.location;
   const locationRange = req.query.location_range;
 
-  let query = `SELECT assets.*, metadata.id as metadata_id, metadata.date_taken, ST_AsText(metadata.location) as location, metadata.created_at as metadata_created_at, metadata.updated_at as metadata_updated_at FROM assets LEFT JOIN metadata ON assets.assetid = metadata.assetid WHERE assets.assetid = ?`;
+  let query = `SELECT assets.*, metadata.id as metadata_id, metadata.date_taken, ST_AsText(metadata.location) as location, metadata.created_at as metadata_created_at, metadata.updated_at as metadata_updated_at , metadata.compression_quality as compression_quality, metadata.original_width as original width, metadata.original_height as original height
+  FROM assets LEFT JOIN metadata ON assets.assetid = metadata.assetid 
+  WHERE assets.assetid = ?`;
   let params = [assetId];
 
   if (startDate) {
@@ -61,6 +63,10 @@ exports.get_download = async (req, res) => {
 
     const asset = rows[0];
     const objectKey = asset.bucketkey;
+    const original_width = asset.original_width;
+    const original_height = asset.original_height;
+    const compression_quality = asset.compression_quality;
+
 
     try {
       // Download the object from the S3 bucket
@@ -75,7 +81,10 @@ exports.get_download = async (req, res) => {
 
       // Decompress the image using sharp
       //TODO: use the original stored size to resize the image, and the quality to rescale the image
-      const decompressedImage = await sharp(compressedData).toBuffer();
+      const decompressedImage = await sharp(compressedData)
+      .resize(original_width, original_height)
+      .jpeg({ quality: compression_quality })
+      .toBuffer();
 
       // Convert the decompressed image to a base64-encoded string
       const data = decompressedImage.toString("base64");
