@@ -246,14 +246,16 @@ def assets(baseurl):
     print("Would you like to filter based on metadata? [y/n]")
     if input() == 'y':
       # location
-      print("\nWould you like to filter based on location? [y/n]")
+      print("Would you like to filter based on location? [y/n]")
       if input() == 'y':
-        print("\nEnter latitude (decimal format): ")
+        print("Enter latitude (decimal format): ")
         lat = input()
-        print ("\nEnter longitude (decimal format): ")
+        print("Enter longitude (decimal format): ")
         long = input()
-        location_string = f"location=POINT({lat} {long})"
-      
+        print("Enter the desired distance range: ")
+        range = input()
+        location_string = f"location=POINT({lat} {long})&location_range={range}"
+
       # date
       print("\nWould you like to filter based on date? [y/n]")
       if input() == 'y':

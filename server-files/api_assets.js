@@ -19,8 +19,12 @@ exports.get_assets = async (req, res) => {
     if (req.query.location) {
       // Assuming req.query.location is a string representation of the location
       const location = req.query.location;
+      const range = parseFloat(req.query.location_range);
+      if (range > 10000){
+        range = 10000
+      }
       console.log(location);
-      query += `ST_Distance(metadata.location, ST_GeomFromText('${location}')) <= 1000000`;
+      query += `ST_Distance(metadata.location, ST_GeomFromText('${location}')) <= ${range}`;
       if (req.query.start_date || req.query.end_date) {
         query += ` AND `
       }
