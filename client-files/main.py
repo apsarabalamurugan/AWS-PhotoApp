@@ -275,8 +275,8 @@ def assets(baseurl):
             if location is not None:
               lat = location.latitude
               long = location.longitude
-              print("Latitude: " + lat)
-              print("Longitude: " + long)
+              print("Latitude: " + str(lat))
+              print("Longitude: " + str(long))
         print("Enter the desired distance range: ")
         range = input()
         location_string = f"location=POINT({lat} {long})&location_range={range}"

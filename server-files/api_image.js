@@ -24,7 +24,7 @@ function convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDire
   const latitudeSign = latitudeDirection.toUpperCase() === 'N' ? 1 : -1;
   const longitudeSign = longitudeDirection.toUpperCase() === 'E' ? 1 : -1;
 
-  const point = `POINT(${longitude * longitudeSign} ${latitude * latitudeSign})`;
+  const point = `POINT(${latitude * latitudeSign} ${longitude * longitudeSign})`;
 
   return point;
 }
