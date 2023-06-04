@@ -12,12 +12,13 @@ const uuid = require("uuid");
 const sharp = require("sharp");
 const { exit } = require("process");
 
+// Converts the coordinates and direction to a point
 function convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates) {
   const latitude = latitudeCoordinates.map(parseFloat).reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
   const longitude = longitudeCoordinates.map(parseFloat).reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
 
   if (isNaN(latitude) || isNaN(longitude)) {
-    throw new Error('Invalid latitude or longitude coordinates');
+    throw new Error('Latitude or longitude coordinates are not a number');
   }
 
   const latitudeSign = latitudeDirection.toUpperCase() === 'N' ? 1 : -1;
@@ -28,15 +29,42 @@ function convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDire
   return point;
 }
 
+// Function to validate the location
+function isValidLocation(location) {
+  // Regular expression pattern to extract latitude and longitude values
+  const pattern = /^POINT\((-?\d+(\.\d+)?) (-?\d+(\.\d+)?)\)$/;
+
+  // Extract latitude and longitude using regular expression match
+  const matches = location.match(pattern);
+
+  if (matches && matches.length === 5) {
+    const latitude = parseFloat(matches[1]);
+    const longitude = parseFloat(matches[3]);
+
+    // Define latitude and longitude ranges
+    const validLatitudeRange = [-90, 90];
+    const validLongitudeRange = [-180, 180];
+
+    // Check if latitude and longitude are within valid ranges
+    if (
+      latitude >= validLatitudeRange[0] &&
+      latitude <= validLatitudeRange[1] &&
+      longitude >= validLongitudeRange[0] &&
+      longitude <= validLongitudeRange[1]
+    ) {
+      return true; // Valid location
+    }
+  }
+
+  return false; // Invalid location
+}
+
+// Posts the image to S3, metadata and other info to RDS
 exports.post_image = async (req, res) => {
   console.log("call to /image...");
 
   try {
-    var data = req.body; // data => JS object
-
-    var S = req.body.data;
-    // ! ISAAC AND SPENCER  HERE IS YOUR METADATA :) :) :) :)
-    /*
+    /* Data example for reference:
     {GPSInfo: {1: 'N', 2: ['41.0', '52.0', '50.45'], 3: 'W', 4: ['87.0', '40.0', '26.63']},
     DateTime: '2021:05:26 16:00:00'}
     */
@@ -46,6 +74,11 @@ exports.post_image = async (req, res) => {
   
     const { 1: latitudeDirection, 2: latitudeCoordinates, 3: longitudeDirection, 4: longitudeCoordinates } = GPSInfo;
     const pointLocation = convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates);
+
+    // Check if location is valid
+    if (isValidLocation(pointLocation) == false) {
+      throw new Error('Invalid latitude or longitude coordinates')
+    }
     
     // get date
     const [datePart, timePart] = DateTime.split(' ');
@@ -53,14 +86,18 @@ exports.post_image = async (req, res) => {
     const [hour, minute, second] = timePart.split(':');
     const dateTime= new Date(year, month - 1, day, hour, minute, second);
 
+    // Checks if date object is invalid
+    if (isNaN(dateTime)) {
+      throw new Error('Date does not exist or is invalid')
+    }
+
     // get image width and height
     const width = ExifImageWidth;
     const height = ExifImageHeight;
 
-    var bytes = Buffer.from(S, "base64");
+    var bytes = Buffer.from(req.body.data, "base64");
     const name = uuid.v4() + ".jpg";
 
-    // console.log(req.params.userid);
     // Find the user's bucket folder.
     dbConnection.query(
       "SELECT * FROM users WHERE userid = ?",
@@ -91,25 +128,21 @@ exports.post_image = async (req, res) => {
             .jpeg({ quality: quality })
             .toBuffer();
 
-          //! possibly need to modify the location and datetaken metadata here so that it fits the database
           const newMetadata = { location: pointLocation, dateTaken: DateTime, CompressionQuality: String(quality) , ImageWidth: String(width), ImageHeight: String(height)};
 
-          console.log(newMetadata);
+          //console.log(newMetadata);
 
           const putObjectParams = {
             Bucket: s3_bucket_name,
             Key: folder + name,
             Body: resizedImage,
-            Metadata: newMetadata, // this was causing the crash, as it contains arrays which we can't have -Eli
+            Metadata: newMetadata, 
           };
 
           try {
-            // this is where its erroring !!!!!
             const data = await s3.send(new PutObjectCommand(putObjectParams));
             // update databases
-            //! WE NEED TO CHECK FOR WHEN IT'S INVALID HERE
-            var location = pointLocation;
-            // location = `ST_PointFromText('${location}')`
+            const location = pointLocation;
             const dateTaken = dateTime;
 
             dbConnection.query(
@@ -139,7 +172,7 @@ exports.post_image = async (req, res) => {
                       } else {
                         res.status(200).json({
                           message: "success",
-                          assetid: rows.insertId,
+                          assetid: newlyGeneratedAssetId,
                         });
                         return;
                       }

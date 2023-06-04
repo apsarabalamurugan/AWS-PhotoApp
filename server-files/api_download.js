@@ -7,14 +7,7 @@
 const dbConnection = require("./database.js");
 const { GetObjectCommand } = require("@aws-sdk/client-s3");
 const { s3, s3_bucket_name, s3_region_name } = require("./aws.js");
-
-const uuid = require("uuid");
 const sharp = require("sharp");
-const moment = require('moment');
-const ExifImage = require('exif').ExifImage;
-const JPEG = require('jpeg-js');
-const exiftool = require('exiftool-vendored').exiftool;
-
 
 exports.get_download = async (req, res) => {
   console.log("call to /download...");

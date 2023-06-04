@@ -389,7 +389,7 @@ def download(baseurl, display=False):
 
     if display:
       # display the image using matplotlib:
-      image = img.imread(asset.assetname)
+      image = img.imread(asset.asset_name)
       plt.imshow(image)
       plt.show()
 
