@@ -27,6 +27,7 @@ import os
 import base64
 
 from configparser import ConfigParser
+from geopy.geocoders import Nominatim
 
 import matplotlib.pyplot as plt
 import matplotlib.image as img
@@ -248,10 +249,34 @@ def assets(baseurl):
       # location
       print("Would you like to filter based on location? [y/n]")
       if input() == 'y':
-        print("Enter latitude (decimal format): ")
-        lat = input()
-        print("Enter longitude (decimal format): ")
-        long = input()
+        # chose location search type
+        print("Would you like to (1) manually search by longitude and latitude or (2) search by city? [1/2]")
+        searchType = 0
+        firstTime = True
+        while searchType != '1' and searchType != '2':
+          if firstTime == False:
+            print("Please input 1 or 2 to choose:")
+          searchType = input()
+          firstTime = False
+        # enter lat and long
+        if searchType == '1':
+          print("Enter latitude (decimal format): ")
+          lat = input()
+          print("Enter longitude (decimal format): ")
+          long = input()
+        # search by location
+        else:
+          location = None
+          while location is None:
+            geolocator = Nominatim(user_agent="Larry310")
+            print("Please enter a location:")
+            userLoc = input()
+            location = geolocator.geocode(userLoc)
+            if location is not None:
+              lat = location.latitude
+              long = location.longitude
+              print("Latitude: " + lat)
+              print("Longitude: " + long)
         print("Enter the desired distance range: ")
         range = input()
         location_string = f"location=POINT({lat} {long})&location_range={range}"
