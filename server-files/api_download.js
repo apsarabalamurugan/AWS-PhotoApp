@@ -10,6 +10,11 @@ const { s3, s3_bucket_name, s3_region_name } = require("./aws.js");
 
 const uuid = require("uuid");
 const sharp = require("sharp");
+const moment = require('moment');
+const ExifImage = require('exif').ExifImage;
+const JPEG = require('jpeg-js');
+const exiftool = require('exiftool-vendored').exiftool;
+
 
 exports.get_download = async (req, res) => {
   console.log("call to /download...");
@@ -97,9 +102,40 @@ exports.get_download = async (req, res) => {
         .jpeg({ quality: compressionQuality })
         .toBuffer();
 
+      //
+      // METADATA MAYBE TOTO
+      // 
+      // // Parse the input date string
+      // const date = moment(asset.date_taken, 'YYYY:MM:DD HH:mm:ss');
+
+      // // Format the date in the EXIF DateTime format
+      // const exifDateTime = date.format('YYYY:MM:DD HH:mm:ss');
+      
+      // // Extract existing EXIF data from the original image
+      // // const exifData = await getExifData(buffer);
+
+      // // Add or update the metadata in the EXIF data
+      // const gpsInfo = convertPointToGPSInfo(asset.location);
+      // const dateTime = convertToExifDateTime(asset.date_taken);
+      // const exifData = {
+      //   GPSInfo: gpsInfo,
+      //   DateTime: dateTime,
+      //   ExifImageHeight: parseInt(asset.orignal_height),
+      //   ExifImageWidth: parseInt(asset.orignal_width)
+      // }
 
       // Convert the decompressed image to a base64-encoded string
       const data = decompressedImage.toString("base64");
+
+      // // Create a new EXIF metadata object
+      // const newExifData = {
+      //   exif: exifData,
+      // };
+      // // newExifData.imageData = newExifData.imageData || {};
+      // // newExifData.imageData.exif = exifData;
+
+      // // Add the EXIF data to the decompressed image buffer
+      // const imageWithMetadata = await addExifDataToImage(decompressedImage, exifData);
 
       res.status(200).json({
         message: "Success",
@@ -129,3 +165,58 @@ const streamToBuffer = (stream) => {
     stream.on("end", () => resolve(Buffer.concat(chunks)));
   });
 };
+
+// // helper function to preserve GPS Info metaedata
+// function convertPointToGPSInfo(pointString) {
+//   const regex = /POINT\((-?\d+(\.\d+)?)\s(-?\d+(\.\d+)?)\)/;
+//   const matches = pointString.match(regex);
+
+//   if (!matches || matches.length !== 5) {
+//     return null; // Invalid point format
+//   }
+
+//   const latitude = parseFloat(matches[3]);
+//   const longitude = parseFloat(matches[1]);
+
+//   const latitudeRef = latitude >= 0 ? 'N' : 'S';
+//   const longitudeRef = longitude >= 0 ? 'E' : 'W';
+
+//   const latitudeDegrees = Math.floor(Math.abs(latitude));
+//   const latitudeMinutes = Math.floor((Math.abs(latitude) - latitudeDegrees) * 60);
+//   const latitudeSeconds = ((Math.abs(latitude) - latitudeDegrees - latitudeMinutes / 60) * 3600).toFixed(2);
+
+//   const longitudeDegrees = Math.floor(Math.abs(longitude));
+//   const longitudeMinutes = Math.floor((Math.abs(longitude) - longitudeDegrees) * 60);
+//   const longitudeSeconds = ((Math.abs(longitude) - longitudeDegrees - longitudeMinutes / 60) * 3600).toFixed(2);
+
+//   return {
+//     1: latitudeRef,
+//     2: [latitudeDegrees, latitudeMinutes, latitudeSeconds],
+//     3: longitudeRef,
+//     4: [longitudeDegrees, longitudeMinutes, longitudeSeconds],
+//   };
+// }
+
+// // Helper function to convert a string date to EXIF DateTime format
+// const convertToExifDateTime = (dateS) => {
+//   const date = moment.utc(dateS).format('YYYY:MM:DD HH:mm:ss');
+//   return date;
+// };
+
+// // Helper function to add EXIF data to an image buffer
+// const addExifDataToImage = async (imageBuffer, exifData) => {
+//   return new Promise((resolve, reject) => {
+//     const tags = [];
+//     Object.entries(exifData).forEach(([tag, value]) => {
+//       tags.push(`-${tag}=${value}`);
+//     });
+
+//     exiftool.write(imageBuffer, tags, { overwrite_original: true }, (error, buffer) => {
+//       if (error) {
+//         reject(error);
+//       } else {
+//         resolve(buffer);
+//       }
+//     });
+//   });
+// };

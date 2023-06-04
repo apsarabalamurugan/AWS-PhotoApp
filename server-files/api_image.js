@@ -111,9 +111,6 @@ exports.post_image = async (req, res) => {
             var location = pointLocation;
             // location = `ST_PointFromText('${location}')`
             const dateTaken = dateTime;
-            console.log(dateTaken);
-            console.log(typeof dateTaken);
-            return
 
             dbConnection.query(
               "INSERT INTO assets (userid, assetname, bucketkey) VALUES (?, ?, ?)",
