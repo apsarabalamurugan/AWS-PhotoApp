@@ -505,19 +505,15 @@ def get_jpeg_exif(file_path):
       exif = img._getexif()
 
   relevant_metadata = {}
-  relevant_exif_tags = ["DateTime","GPSInfo","ExifImageWidth","ExifImageHeight"]
+  relevant_exif_tags = ["DateTime","GPSInfo","ExifImageWidth","ExifImageHeight","Orientation"]
   if exif is None:
     print("No exif metadata found")
     return
 
   for tag_id, value in exif.items():
-
     tag = TAGS.get(tag_id, tag_id)
-    #print(tag)
-    #print(value)
     if tag not in relevant_exif_tags:
       continue
-
     if tag == "GPSInfo":
       relevant_metadata[tag] = {}
       for key, val in value.items():
@@ -528,7 +524,6 @@ def get_jpeg_exif(file_path):
           # apsi is always right. do not forget this.
     else:
       relevant_metadata[tag] = value
-
   return jsons.dump(relevant_metadata)
 
 
