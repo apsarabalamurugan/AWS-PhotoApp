@@ -63,7 +63,6 @@ exports.get_download = async (req, res) => {
     const originalHeight = asset.original_height;
     const compressionQuality = asset.compression_quality;
 
-
     try {
       // Download the object from the S3 bucket
       const getObjectParams = {
@@ -89,21 +88,23 @@ exports.get_download = async (req, res) => {
       const buffer = await streamToBuffer(readableStream);
 
       // Resize and decompress the image using sharp
-      
+
       const decompressedImage = await sharp(buffer)
         .resize(originalWidth, originalHeight)
         .jpeg({ quality: compressionQuality })
         .toBuffer();
 
+      console.log(`resizing image to ${originalWidth}x${originalHeight}`);
+
       //
       // METADATA MAYBE TOTO
-      // 
+      //
       // // Parse the input date string
       // const date = moment(asset.date_taken, 'YYYY:MM:DD HH:mm:ss');
 
       // // Format the date in the EXIF DateTime format
       // const exifDateTime = date.format('YYYY:MM:DD HH:mm:ss');
-      
+
       // // Extract existing EXIF data from the original image
       // // const exifData = await getExifData(buffer);
 

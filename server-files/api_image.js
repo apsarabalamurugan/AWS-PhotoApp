@@ -13,18 +13,29 @@ const sharp = require("sharp");
 const { exit } = require("process");
 
 // Converts the coordinates and direction to a point
-function convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates) {
-  const latitude = latitudeCoordinates.map(parseFloat).reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
-  const longitude = longitudeCoordinates.map(parseFloat).reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
+function convertToSQLPoint(
+  latitudeDirection,
+  latitudeCoordinates,
+  longitudeDirection,
+  longitudeCoordinates
+) {
+  const latitude = latitudeCoordinates
+    .map(parseFloat)
+    .reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
+  const longitude = longitudeCoordinates
+    .map(parseFloat)
+    .reduce((acc, val, index) => acc + val / Math.pow(60, index), 0);
 
   if (isNaN(latitude) || isNaN(longitude)) {
-    throw new Error('Latitude or longitude coordinates are not a number');
+    throw new Error("Latitude or longitude coordinates are not a number");
   }
 
-  const latitudeSign = latitudeDirection.toUpperCase() === 'N' ? 1 : -1;
-  const longitudeSign = longitudeDirection.toUpperCase() === 'E' ? 1 : -1;
+  const latitudeSign = latitudeDirection.toUpperCase() === "N" ? 1 : -1;
+  const longitudeSign = longitudeDirection.toUpperCase() === "E" ? 1 : -1;
 
-  const point = `POINT(${latitude * latitudeSign} ${longitude * longitudeSign})`;
+  const point = `POINT(${latitude * latitudeSign} ${
+    longitude * longitudeSign
+  })`;
 
   return point;
 }
@@ -68,27 +79,38 @@ exports.post_image = async (req, res) => {
     {GPSInfo: {1: 'N', 2: ['41.0', '52.0', '50.45'], 3: 'W', 4: ['87.0', '40.0', '26.63']},
     DateTime: '2021:05:26 16:00:00'}
     */
-    
+
     // get location
-    const {GPSInfo, DateTime, ExifImageWidth, ExifImageHeight} = req.body.metadata;
-  
-    const { 1: latitudeDirection, 2: latitudeCoordinates, 3: longitudeDirection, 4: longitudeCoordinates } = GPSInfo;
-    const pointLocation = convertToSQLPoint(latitudeDirection, latitudeCoordinates, longitudeDirection, longitudeCoordinates);
+    const { GPSInfo, DateTime, ExifImageWidth, ExifImageHeight } =
+      req.body.metadata;
+
+    const {
+      1: latitudeDirection,
+      2: latitudeCoordinates,
+      3: longitudeDirection,
+      4: longitudeCoordinates,
+    } = GPSInfo;
+    const pointLocation = convertToSQLPoint(
+      latitudeDirection,
+      latitudeCoordinates,
+      longitudeDirection,
+      longitudeCoordinates
+    );
 
     // Check if location is valid
     if (isValidLocation(pointLocation) == false) {
-      throw new Error('Invalid latitude or longitude coordinates')
+      throw new Error("Invalid latitude or longitude coordinates");
     }
-    
+
     // get date
-    const [datePart, timePart] = DateTime.split(' ');
-    const [year, month, day] = datePart.split(':');
-    const [hour, minute, second] = timePart.split(':');
-    const dateTime= new Date(year, month - 1, day, hour, minute, second);
+    const [datePart, timePart] = DateTime.split(" ");
+    const [year, month, day] = datePart.split(":");
+    const [hour, minute, second] = timePart.split(":");
+    const dateTime = new Date(year, month - 1, day, hour, minute, second);
 
     // Checks if date object is invalid
     if (isNaN(dateTime)) {
-      throw new Error('Date does not exist or is invalid')
+      throw new Error("Date does not exist or is invalid");
     }
 
     // get image width and height
@@ -121,14 +143,25 @@ exports.post_image = async (req, res) => {
           const user = rows[0];
           const folder = user.bucketfolder;
           // let's set the default quality to 80 and default scaled down image width to 800, but these can be modified
-          const imageSize = 800;
+          const imageSize = Math.min(width, 800);
+          console.log(
+            `shrinking image to ${imageSize}x${
+              imageSize * (height / width)
+            } pixels wide for S3 storage`
+          );
           const quality = 80;
           const resizedImage = await sharp(bytes)
             .resize(imageSize)
             .jpeg({ quality: quality })
             .toBuffer();
 
-          const newMetadata = { location: pointLocation, dateTaken: DateTime, CompressionQuality: String(quality) , ImageWidth: String(width), ImageHeight: String(height)};
+          const newMetadata = {
+            location: pointLocation,
+            dateTaken: DateTime,
+            CompressionQuality: String(quality),
+            ImageWidth: String(width),
+            ImageHeight: String(height),
+          };
 
           //console.log(newMetadata);
 
@@ -136,7 +169,7 @@ exports.post_image = async (req, res) => {
             Bucket: s3_bucket_name,
             Key: folder + name,
             Body: resizedImage,
-            Metadata: newMetadata, 
+            Metadata: newMetadata,
           };
 
           try {
@@ -161,7 +194,14 @@ exports.post_image = async (req, res) => {
 
                   dbConnection.query(
                     "INSERT INTO metadata (assetid, date_taken, location, compression_quality, original_width, original_height) VALUES (?, ?, ST_GeomFromText(?), ?, ?, ?)",
-                    [newlyGeneratedAssetId, dateTaken, location, quality, width, height],
+                    [
+                      newlyGeneratedAssetId,
+                      dateTaken,
+                      location,
+                      quality,
+                      width,
+                      height,
+                    ],
                     (err, rows, fields) => {
                       if (err) {
                         res.status(400).json({
