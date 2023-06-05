@@ -81,7 +81,7 @@ exports.post_image = async (req, res) => {
     */
 
     // get location
-    const { GPSInfo, DateTime, ExifImageWidth, ExifImageHeight } =
+    const { GPSInfo, Orientation, DateTime, ExifImageWidth, ExifImageHeight } =
       req.body.metadata;
 
     const {
@@ -145,9 +145,9 @@ exports.post_image = async (req, res) => {
           // let's set the default quality to 80 and default scaled down image width to 800, but these can be modified
           const imageSize = Math.min(width, 800);
           console.log(
-            `shrinking image to ${imageSize}x${
+            `shrinking image to ${
               imageSize * (height / width)
-            } pixels wide for S3 storage`
+            }x${imageSize} pixels wide for S3 storage`
           );
           const quality = 80;
           const resizedImage = await sharp(bytes)
@@ -161,9 +161,11 @@ exports.post_image = async (req, res) => {
             CompressionQuality: String(quality),
             ImageWidth: String(width),
             ImageHeight: String(height),
+            Orientation: String(Orientation),
           };
 
-          //console.log(newMetadata);
+          //TODO: remove this
+          console.log("ExifOrientation: " + Orientation);
 
           const putObjectParams = {
             Bucket: s3_bucket_name,
@@ -193,7 +195,7 @@ exports.post_image = async (req, res) => {
                   const newlyGeneratedAssetId = rows.insertId;
 
                   dbConnection.query(
-                    "INSERT INTO metadata (assetid, date_taken, location, compression_quality, original_width, original_height) VALUES (?, ?, ST_GeomFromText(?), ?, ?, ?)",
+                    "INSERT INTO metadata (assetid, date_taken, location, compression_quality, original_width, original_height, original_orientation) VALUES (?, ?, ST_GeomFromText(?), ?, ?, ?, ?)",
                     [
                       newlyGeneratedAssetId,
                       dateTaken,
@@ -201,6 +203,7 @@ exports.post_image = async (req, res) => {
                       quality,
                       width,
                       height,
+                      Orientation,
                     ],
                     (err, rows, fields) => {
                       if (err) {

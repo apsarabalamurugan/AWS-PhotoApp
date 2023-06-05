@@ -18,7 +18,7 @@ exports.get_download = async (req, res) => {
   const location = req.query.location;
   const locationRange = req.query.location_range;
 
-  let query = `SELECT assets.*, metadata.id as metadata_id, metadata.date_taken, ST_AsText(metadata.location) as location, metadata.created_at as metadata_created_at, metadata.updated_at as metadata_updated_at , metadata.compression_quality as compression_quality, metadata.original_width as original_width, metadata.original_height as original_height FROM assets LEFT JOIN metadata ON assets.assetid = metadata.assetid WHERE assets.assetid = ?`;
+  let query = `SELECT assets.*, metadata.id as metadata_id, metadata.date_taken, ST_AsText(metadata.location) as location, metadata.created_at as metadata_created_at, metadata.updated_at as metadata_updated_at , metadata.compression_quality as compression_quality, metadata.original_width as original_width, metadata.original_height as original_height, metadata.original_orientation as original_orientation FROM assets LEFT JOIN metadata ON assets.assetid = metadata.assetid WHERE assets.assetid = ?`;
   let params = [assetId];
 
   if (startDate) {
@@ -62,6 +62,14 @@ exports.get_download = async (req, res) => {
     const originalWidth = asset.original_width;
     const originalHeight = asset.original_height;
     const compressionQuality = asset.compression_quality;
+    const originalOrientation = asset.original_orientation;
+
+    const exifOrientationToDegrees = {
+      1: 0, // No rotation
+      3: 180, // 180 degrees
+      6: 90, // 90 degrees counterclockwise
+      8: -90, // 90 degrees clockwise
+    };
 
     try {
       // Download the object from the S3 bucket
@@ -75,7 +83,6 @@ exports.get_download = async (req, res) => {
       // const compressedData = Buffer.from(s3Object.Body);
 
       // // Decompress the image using sharp
-      // //TODO: use the original stored size to resize the image, and the quality to rescale the image
       // const decompressedImage = await sharp(compressedData)
       // .resize(original_width, original_height)
       // .jpeg({ quality: compression_quality })
@@ -90,11 +97,12 @@ exports.get_download = async (req, res) => {
       // Resize and decompress the image using sharp
 
       const decompressedImage = await sharp(buffer)
-        .resize(originalWidth, originalHeight)
+        .rotate(exifOrientationToDegrees[originalOrientation])
+        .resize(originalHeight, originalWidth)
         .jpeg({ quality: compressionQuality })
         .toBuffer();
 
-      console.log(`resizing image to ${originalWidth}x${originalHeight}`);
+      console.log(`resizing image to ${originalHeight}x${originalWidth}`);
 
       //
       // METADATA MAYBE TOTO
