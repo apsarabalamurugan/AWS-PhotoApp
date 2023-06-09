@@ -5,6 +5,8 @@ Our project is the suggested project 2 extension option, but we added a few extr
 2) Search by Metadata (location and date)
 3) Image compression (quality compression and resizing) on upload, and decompression on download
 
+It is also important to note that the server files are stored in EC2.
+
 The following are the requirements for the user:
 1) Users MUST upload photos with location and date metadata, otherwise they will not be uploaded to the bucket
     This ensures that our metadata functionality works effectively.
