@@ -1,2 +1,2 @@
 [client]
-webservice=http://localhost:8080
+webservice=http://final-proj-env.eba-gf2rum3i.us-east-1.elasticbeanstalk.com/
