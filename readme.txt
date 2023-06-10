@@ -14,3 +14,4 @@ The following are the requirements for the user:
     Location: By latitude and longitude OR with a city name, along with a radial distance (miles) of how far from the specified location they want to search
         We did this using the geopy Python client as well as using the ST_Geom type in SQL 
     Date: Using a start/end date range. They have the option to exclude a start or end date if they'd like to.
+3) File sizes must be smaller than 1MB
