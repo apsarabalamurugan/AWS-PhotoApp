@@ -1,17 +1,59 @@
-Group Members: Apsara Balamurugan, Eli Barlow, Isaac Miller, Spencer Rothfleisch
+# 📸 AWS-Based Photo App
 
-Our project is the suggested project 2 extension option, but we added a few extra features / requirements.  The main functions are as follows:
-1) Image Metadata Extraction (specifically image dimensions, location, date, and orientation)
-2) Search by Metadata (location and date)
-3) Image compression (quality compression and resizing) on upload, and decompression on download
+This is a multi-tier web application that allows users to upload, search, and manage photos with embedded metadata. The app uses AWS services such as **EC2**, **S3**, and **RDS**, and was deployed using **Elastic Beanstalk**.
 
-It is also important to note that the server files are stored in EC2.
+---
 
-The following are the requirements for the user:
-1) Users MUST upload photos with location and date metadata, otherwise they will not be uploaded to the bucket
-    This ensures that our metadata functionality works effectively.
-2) Users can search for photos with location and date metadata in the following ways:
-    Location: By latitude and longitude OR with a city name, along with a radial distance (miles) of how far from the specified location they want to search
-        We did this using the geopy Python client as well as using the ST_Geom type in SQL 
-    Date: Using a start/end date range. They have the option to exclude a start or end date if they'd like to.
-3) File sizes must be smaller than 1MB
+## 🛠️ Features
+
+### 🖼️ Image Upload & Processing
+- Upload images via a client interface
+- Extract image metadata (EXIF) on upload:
+  - **Location** (GPS coordinates)
+  - **Date taken**
+  - **Orientation**
+  - **Dimensions**
+- Images **must include location and date metadata** to be accepted
+
+### 🔍 Metadata-Based Search
+- Search photos by:
+  - **City name + radius**
+  - **Latitude/longitude + radius**
+  - **Date range**
+  - Option to exclude start/end dates
+- Powered by:
+  - **GeoPy** for geocoding (city to coordinates)
+  - **PostgreSQL with PostGIS/GeoAlchemy** for spatial querying
+
+### 📦 Compression & Storage
+- Compress and resize images on upload (quality and dimensions)
+- Decompress on download for optimal performance
+- Store all images in **Amazon S3**
+- Metadata stored in **Amazon RDS (PostgreSQL)**
+
+---
+
+## 🧱 Architecture
+
+- **Frontend**: HTML/JS client to upload and search
+- **Backend**: Python Flask API hosted on **AWS EC2** via **Elastic Beanstalk**
+- **Database**: AWS **RDS PostgreSQL** with spatial extensions
+- **Storage**: AWS **S3** for photo file storage
+- **Services**: Integrated with `boto3`, `Pillow`, `ExifRead`, `GeoPy`, and `GeoAlchemy2`
+
+---
+
+## 🚧 Requirements
+
+- Uploaded images must:
+  - Be **< 1MB** in size
+  - Include **location and date** metadata
+- Recommended formats: `.jpg`, `.jpeg`, `.png`
+
+---
+
+## 📎 Example Use Cases
+
+- Upload vacation photos with embedded location data and find them by city name later
+- Use GPS search to find all photos taken within a 50-mile radius
+- Track photo history by filtering by metadata date range
